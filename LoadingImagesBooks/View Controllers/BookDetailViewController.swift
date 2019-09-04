@@ -1,11 +1,3 @@
-//
-//  BookDetailViewController.swift
-//  LoadingImagesBooks
-//
-//  Created by C4Q  on 11/28/17.
-//  Copyright © 2017 C4Q . All rights reserved.
-//
-
 import UIKit
 
 class BookDetailViewController: UIViewController {
@@ -25,17 +17,21 @@ class BookDetailViewController: UIViewController {
         authorLabel.text = book.volumeInfo.authors?.joined(separator: ",")
         descriptionTextView.text = book.volumeInfo.description
         loadImage()
+        
     }
     func loadImage() {
         guard let imageURLStr = book.volumeInfo.imageLinks?.thumbnail else {
             return
         }
-        let completion: (UIImage) -> Void = {(onlineImage: UIImage) in
-            self.coverImageView.image = onlineImage
-            self.coverImageView.setNeedsLayout()
+        
+        ImageAPIClient.manager.getImage(from: imageURLStr) { (result) in
+            switch result {
+            case let .failure(error):
+                print(error)
+            case let .success(image):
+                self.coverImageView.image = image
+                self.coverImageView.setNeedsLayout()
+            }
         }
-        ImageAPIClient.manager.getImage(from: imageURLStr,
-                                        completionHandler: completion,
-                                        errorHandler: {print($0)})
     }
 }

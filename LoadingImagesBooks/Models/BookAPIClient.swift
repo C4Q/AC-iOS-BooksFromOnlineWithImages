@@ -9,27 +9,32 @@
 import Foundation
 
 struct BookAPIClient {
-    private init() {}
     static let manager = BookAPIClient()
+    
     func getBooks(from urlStr: String,
-                  completionHandler: @escaping ([Book]) -> Void,
-                  errorHandler: @escaping (AppError) -> Void) {
+                  completionHandler: @escaping (Result<[Book], AppError>) -> Void) {
         guard let url = URL(string: urlStr) else {
-            errorHandler(.badURL)
+            completionHandler(.failure(.badURL))
             return
         }
-        let completion: (Data) -> Void = {(data: Data) in
-            do {
-                let bookInfo = try JSONDecoder().decode(BookInfo.self, from: data)
-                let books = bookInfo.items
-                completionHandler(books)
-            }
-            catch {
-                errorHandler(.couldNotParseJSON(rawError: error))
+
+        NetworkHelper.manager.getData(from: url) { (result) in
+            switch result {
+            case let .failure(error):
+                completionHandler(.failure(error))
+                return
+            case let .success(data):
+                do {
+                    let bookInfo = try JSONDecoder().decode(BookInfo.self, from: data)
+                    let books = bookInfo.items
+                    completionHandler(.success(books))
+                }
+                catch {
+                    completionHandler(.failure(.couldNotParseJSON(rawError: error)))
+                }
             }
         }
-        NetworkHelper.manager.performDataTask(with: url,
-                                              completionHandler: completion,
-                                              errorHandler: errorHandler)
     }
+    
+    private init() {}
 }
